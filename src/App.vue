@@ -6,7 +6,7 @@
     </div>
     <!-- query -->
     <div class="query-box">
-      <el-input class="query-input" v-model="queryInput" placeholder="请输入姓名搜索"/>
+      <el-input class="query-input" v-model="queryInput" placeholder="请输入姓名搜索" @input="handleQueryName"/>
       <div class="btn-lsit">
         <el-button type="primary" @click="handleAdd">增加</el-button>
         <el-button type="danger" @click="handleDelList" v-if="multipleSelection.length > 0">删除多选</el-button>
@@ -106,6 +106,7 @@ let tableData = $ref([
   },
 
 ])
+let tableDataCopy = Object.assign(tableData)
 let multipleSelection = $ref([])
 let dialogFormVisible = $ref(false)
 let tableForm = $ref({
@@ -173,8 +174,6 @@ const dialogConfirm = () => {
     // 替换当前索引值对应的数据
   }
 
-  
-  
 }
 
 // 编辑
@@ -183,6 +182,18 @@ const handleEdit = (row) => {
   dialogType = 'edit'
   console.log(row)
   tableForm = {...row}
+}
+
+// 搜索
+const handleQueryName = (val) => {
+  // console.log(queryInput)
+  // console.log(val)
+
+  if(val.length > 0){
+    tableData = tableData.filter(item => (item.name).toLowerCase().match(val.toLowerCase()))
+  } else {
+    tableData = tableDataCopy
+  }
 }
 
 </script>
