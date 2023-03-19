@@ -10,8 +10,15 @@ export default defineConfig({
             reactivityTransform: true
         }),
     ],
-    /* server: {
-        port: 8080 //指定端口号
-    }, */
+    server: {
+        //port: 8080 //指定端口号
+
+        proxy:{
+            '/user':{
+                target:"http://127.0.0.1:8080/"
+            }
+        }
+
+    },
     base: './', //打包相对路径
 })

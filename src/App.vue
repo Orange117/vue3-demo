@@ -6,7 +6,7 @@
     </div>
     <!-- query -->
     <div class="query-box">
-      <el-input class="query-input" v-model="queryInput" placeholder="请输入姓名搜索" @input="handleQueryName"/>
+      <el-input class="query-input" v-model="queryInput" placeholder="请输入姓名搜索" @change="handleQueryName"/>
       <div class="btn-lsit">
         <el-button type="primary" @click="handleAdd">增加</el-button>
         <el-button type="danger" @click="handleDelList" v-if="multipleSelection.length > 0">删除多选</el-button>
@@ -34,6 +34,15 @@
       </template>
     </el-table-column>
     </el-table>
+
+    <el-pagination 
+      background 
+      layout="prev, pager, next" 
+      :total="total"
+      style="display: flex;justify-content: center;margin-top: 10px;"
+      v-model:current-page="curPage"
+      @current-change="handleChangePage"
+    />
 
     <!-- dialog -->
     <el-dialog v-model="dialogFormVisible" :title="dialogType === 'add' ? '新增' : '编辑'">
@@ -66,8 +75,9 @@
   </div>
 </template>
 <script setup>
-  import { ref } from 'vue';
 
+import { ref } from 'vue';
+import request from "./utils/request.js"
 
 /* 数据 */
 let queryInput = $ref("")
@@ -117,20 +127,44 @@ let tableForm = $ref({
   address:"天津市",
 })
 let dialogType = $ref('add')
+let total = $ref(10)
+let curPage = $ref(1)
 
 
 /* 方法 */
+
+const getTableData = async (cur = 1) => {
+  let res = await request.get('/list', {
+    pageSize:10,
+    pageNum: cur
+  })
+  tableData = res.list
+  total = res.total
+  curPage = res.pageNum
+}
+
+getTableData(1)
+
+// 请求分页
+const handleChangePage = (val) => {
+  getTableData(curPage)
+}
+
 // 删除一条
-const handleRowDel = ({id}) => {
-  //console.log(id)
-  let index = tableData.findIndex(item=>item.id === id)
-  tableData.splice(index, 1)
+const handleRowDel = async ({ID}) => {
+  // console.log(id)
+  // // 1. 通过id获取到条目对应的 索引值
+  // let index = tableData.findIndex(item => item.id === id)
+  // // 2. 通过索引值进行删除对应条目
+  // tableData.splice(index, 1)
+  await request.delete(`/delete/${ID}`)
+  await getTableData(curPage)
 }
 
 // 删除多条
 const handleDelList = () => {
-  multipleSelection.forEach(id => {
-    handleRowDel({id})
+  multipleSelection.forEach(ID => {
+    handleRowDel({ID})
   })
   multipleSelection = []
 }
@@ -141,7 +175,7 @@ const handleSelectionChange = (val) => {
   // console.log(val)
   multipleSelection = []
   val.forEach(item => {
-    multipleSelection.push(item.id)
+    multipleSelection.push(item.ID)
   })
   
 }
@@ -154,7 +188,7 @@ const handleAdd = () => {
 }
 
 // 确认
-const dialogConfirm = () => {
+const dialogConfirm = async () => {
   dialogFormVisible = false
 
 
@@ -162,16 +196,30 @@ const dialogConfirm = () => {
   if(dialogType === 'add') {
     // 1.拿到数据
     // 2.添加到table
-    tableData.push({
-      id: (tableData.length + 1).toString(),
+    // tableData.push({
+    //   id: (tableData.length + 1).toString(),
+    //   ...tableForm
+    // })
+
+    await request.post("/add",{
       ...tableForm
     })
+    await getTableData(curPage)
+
   } else {
     // 获取的当前索引
-    let index = tableData.findIndex(item => item.id === tableForm.id)
-    console.log(index)
-    tableData[index] = tableForm
+    // let index = tableData.findIndex(item => item.id === tableForm.id)
+    // console.log(index)
+    // tableData[index] = tableForm
     // 替换当前索引值对应的数据
+
+    // 修改 内容
+    await request.put(`/update/${tableForm.ID}`, {
+      ...tableForm
+    })
+    // 刷新数据
+    await getTableData(curPage)
+
   }
 
 }
@@ -185,14 +233,20 @@ const handleEdit = (row) => {
 }
 
 // 搜索
-const handleQueryName = (val) => {
+const handleQueryName = async (val) => {
   // console.log(queryInput)
   // console.log(val)
 
-  if(val.length > 0){
-    tableData = tableData.filter(item => (item.name).toLowerCase().match(val.toLowerCase()))
+  // if(val.length > 0){
+  //   tableData = tableData.filter(item => (item.name).toLowerCase().match(val.toLowerCase()))
+  // } else {
+  //   tableData = tableDataCopy
+  // }
+
+  if (val.length > 0) {
+    tableData = await request.get(`/list/${val}`)
   } else {
-    tableData = tableDataCopy
+    await getTableData(curPage)
   }
 }
 
